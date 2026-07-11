@@ -19,8 +19,9 @@ Rules:
    Never translate or alter any text inside <...> or {...}. The translated text must contain exactly the same number of newline characters as the source.
 2. Do not add explanations, censorship, quotation marks, or translator notes.
 3. Keep character names and terminology consistent within the batch.
-4. Return one translation for every numeric id.
-5. Output valid JSON only in this shape: {"translations":[{"id":0,"text":"..."}]}.
+4. Fixed character names: アンドロメダ = 安德洛墨达; アンドロメダ(水着) = 安德洛墨达（泳装）. Never vary these names.
+5. Return one translation for every numeric id.
+6. Output valid JSON only in this shape: {"translations":[{"id":0,"text":"..."}]}.
 """
 
 

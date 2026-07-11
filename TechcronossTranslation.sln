@@ -1,0 +1,24 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TechcronossTranslation", "TechcronossTranslation\TechcronossTranslation.csproj", "{1B542A92-80D8-48A8-93BA-72DD4C283D09}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TechcronossTranslationLauncher", "TechcronossTranslationLauncher\TechcronossTranslationLauncher.csproj", "{99109F71-F3CF-4989-A6FA-FC44A4FD5CCD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1B542A92-80D8-48A8-93BA-72DD4C283D09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B542A92-80D8-48A8-93BA-72DD4C283D09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B542A92-80D8-48A8-93BA-72DD4C283D09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B542A92-80D8-48A8-93BA-72DD4C283D09}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99109F71-F3CF-4989-A6FA-FC44A4FD5CCD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99109F71-F3CF-4989-A6FA-FC44A4FD5CCD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99109F71-F3CF-4989-A6FA-FC44A4FD5CCD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99109F71-F3CF-4989-A6FA-FC44A4FD5CCD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

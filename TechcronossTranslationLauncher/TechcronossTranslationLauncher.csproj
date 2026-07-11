@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Techcronoss离线启动器</AssemblyName>
+    <RootNamespace>TechcronossTranslationLauncher</RootNamespace>
+    <Version>0.1.4</Version>
+    <AssemblyVersion>0.1.4.0</AssemblyVersion>
+    <FileVersion>0.1.4.0</FileVersion>
+    <InformationalVersion>0.1.4</InformationalVersion>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishTrimmed>false</PublishTrimmed>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TechcronossTranslation\TechcronossTranslation.csproj"
+                      ReferenceOutputAssembly="false" />
+    <EmbeddedResource Include="..\TechcronossTranslation\bin\$(Configuration)\net6.0\TechcronossTranslation.dll"
+                      LogicalName="TechcronossTranslationLauncher.Payload.TechcronossTranslation.dll" />
+    <EmbeddedResource Include="..\translations\zh-Hans.json"
+                      LogicalName="TechcronossTranslationLauncher.Payload.zh-Hans.json" />
+    <EmbeddedResource Include="..\assets\ttcuyuanj"
+                      LogicalName="TechcronossTranslationLauncher.Payload.ttcuyuanj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,13 @@
+bin/
+obj/
+.work/
+.dotnet_home/
+.localappdata/
+release/
+*.user
+*.suo
+*.log
+__pycache__/
+*.pyc
+DeepSeek.key
+NuGet.Config

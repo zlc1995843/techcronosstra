@@ -3,10 +3,10 @@
     <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>TechcronossTranslation</AssemblyName>
     <RootNamespace>TechcronossTranslation</RootNamespace>
-    <Version>0.1.4</Version>
-    <AssemblyVersion>0.1.4.0</AssemblyVersion>
-    <FileVersion>0.1.4.0</FileVersion>
-    <InformationalVersion>0.1.4</InformationalVersion>
+    <Version>0.1.14</Version>
+    <AssemblyVersion>0.1.14.0</AssemblyVersion>
+    <FileVersion>0.1.14.0</FileVersion>
+    <InformationalVersion>0.1.14</InformationalVersion>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ImplicitUsings>disable</ImplicitUsings>
@@ -20,6 +20,7 @@
     <GameCoreDlls Include="$(GameDir)\BepInEx\core\BepInEx.Unity.Common.dll" />
     <GameCoreDlls Include="$(GameDir)\BepInEx\core\BepInEx.Unity.IL2CPP.dll" />
     <GameCoreDlls Include="$(GameDir)\BepInEx\core\Il2CppInterop.Runtime.dll" />
+    <GameCoreDlls Include="$(GameDir)\BepInEx\core\0Harmony.dll" />
     <Reference Include="@(GameDlls)">
       <Private>false</Private>
     </Reference>

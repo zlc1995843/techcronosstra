@@ -11,18 +11,41 @@ namespace TechcronossTranslation;
 
 internal sealed class TranslationBehaviour : MonoBehaviour
 {
+    internal static TranslationBehaviour Instance { get; private set; }
+
     private bool _loggedScanFailure;
     private bool _fontInitializationAttempted;
     private TMP_FontAsset _chineseFont;
     private AssetBundle _fontBundle;
     private readonly Dictionary<int, string> _lastValues = new();
+    private readonly Dictionary<int, string> _pendingTranslations = new();
+
+    private void Awake()
+    {
+        Instance = this;
+        BeginLoadChineseFont();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
+    }
+
+    internal static bool ApplyNovelFont(TMP_Text label)
+    {
+        var instance = Instance;
+        if (instance == null || label == null || !instance.EnsureChineseFont())
+            return false;
+        instance.ApplyChineseFont(label);
+        return true;
+    }
 
     private void LateUpdate()
     {
         if (!_fontInitializationAttempted)
         {
-            _fontInitializationAttempted = true;
-            TryCreateChineseFont();
+            EnsureChineseFont();
         }
 
         if (!ModConfig.Enabled.Value)
@@ -47,24 +70,62 @@ internal sealed class TranslationBehaviour : MonoBehaviour
 
     private void Translate(TMP_Text label)
     {
-        if (label == null || _chineseFont == null)
+        if (label == null)
             return;
 
         var source = label.text;
         var instanceId = label.GetInstanceID();
+        if (_chineseFont == null)
+        {
+            if (!string.IsNullOrEmpty(source)
+                && Plugin.Translations.TryTranslateDisplay(source, out var pending))
+                _pendingTranslations[instanceId] = pending;
+
+            if (_pendingTranslations.ContainsKey(instanceId))
+            {
+                label.text = string.Empty;
+                _lastValues[instanceId] = string.Empty;
+            }
+            return;
+        }
+
+        if (_pendingTranslations.TryGetValue(instanceId, out var queuedTranslation))
+        {
+            if (!string.IsNullOrEmpty(source)
+                && Plugin.Translations.TryTranslateDisplay(source, out var currentTranslation))
+                queuedTranslation = currentTranslation;
+            ApplyTranslation(label, queuedTranslation, instanceId);
+            _pendingTranslations.Remove(instanceId);
+            return;
+        }
+
         if (_lastValues.TryGetValue(instanceId, out var previous)
             && string.Equals(previous, source, StringComparison.Ordinal))
             return;
         _lastValues[instanceId] = source;
 
         if (!Plugin.Translations.TryTranslateDisplay(source, out var translated))
-            return;
-
-        if (!_fontInitializationAttempted)
         {
-            _fontInitializationAttempted = true;
-            TryCreateChineseFont();
+            if (Plugin.Translations.IsTranslatedValue(source)
+                && label.font != _chineseFont)
+            {
+                ApplyChineseFont(label);
+            }
+            return;
         }
+
+        ApplyTranslation(label, translated, instanceId);
+    }
+
+    private void ApplyTranslation(TMP_Text label, string translated, int instanceId)
+    {
+        ApplyChineseFont(label);
+        label.text = translated;
+        _lastValues[instanceId] = translated;
+    }
+
+    private void ApplyChineseFont(TMP_Text label)
+    {
         var originalFont = label.font;
         if (originalFont != null
             && originalFont != _chineseFont
@@ -72,12 +133,22 @@ internal sealed class TranslationBehaviour : MonoBehaviour
             && !_chineseFont.fallbackFontAssetTable.Contains(originalFont))
             _chineseFont.fallbackFontAssetTable.Add(originalFont);
         label.font = _chineseFont;
-        label.text = translated;
-        _lastValues[instanceId] = translated;
+        label.fontSharedMaterial = _chineseFont.material;
     }
 
-    private void TryCreateChineseFont()
+    private bool EnsureChineseFont()
     {
+        if (_chineseFont != null)
+            return true;
+        BeginLoadChineseFont();
+        return false;
+    }
+
+    private void BeginLoadChineseFont()
+    {
+        if (_fontInitializationAttempted)
+            return;
+        _fontInitializationAttempted = true;
         try
         {
             var path = Path.Combine(
@@ -97,7 +168,6 @@ internal sealed class TranslationBehaviour : MonoBehaviour
         catch (Exception exception)
         {
             Plugin.Logger.LogWarning($"Chinese font initialization failed: {exception.Message}");
-            _chineseFont = null;
         }
     }
 

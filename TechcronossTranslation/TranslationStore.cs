@@ -17,6 +17,7 @@ internal sealed class TranslationStore
     private readonly ConcurrentDictionary<string, byte> _captured = new(StringComparer.Ordinal);
     private readonly object _captureLock = new();
     private Dictionary<string, string> _translations = new(StringComparer.Ordinal);
+    private HashSet<string> _translatedValues = new(StringComparer.Ordinal);
     private KeyValuePair<string, string>[] _orderedTranslations = [];
     private Dictionary<string, string> _prefixTranslations = new(StringComparer.Ordinal);
     private string _capturePath = string.Empty;
@@ -52,6 +53,7 @@ internal sealed class TranslationStore
                 result[item.Name] = translated;
         }
         _translations = result;
+        _translatedValues = new HashSet<string>(result.Values, StringComparer.Ordinal);
         _orderedTranslations = result
             .OrderByDescending(item => item.Key.Length)
             .ToArray();
@@ -72,6 +74,15 @@ internal sealed class TranslationStore
         var chineseCharacterArray = new char[chineseCharacters.Count];
         chineseCharacters.CopyTo(chineseCharacterArray);
         ChineseCharacterSet = new string(chineseCharacterArray);
+    }
+
+    internal bool IsTranslatedValue(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return false;
+        if (_translatedValues.Contains(value))
+            return true;
+        return _translatedValues.Contains(value.Replace("\r\n", "\n").Trim());
     }
 
     internal string Translate(string value)

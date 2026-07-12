@@ -10,7 +10,7 @@ public sealed class Plugin : BasePlugin
 {
     public const string PluginGuid = "zlc.techcronoss.translation";
     public const string PluginName = "Techcronoss Chinese Translation";
-    public const string PluginVersion = "0.1.18";
+    public const string PluginVersion = "0.1.19";
 
     internal static ManualLogSource Logger { get; private set; } = null!;
     internal static TranslationStore Translations { get; private set; } = null!;

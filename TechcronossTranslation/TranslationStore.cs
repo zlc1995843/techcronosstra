@@ -127,6 +127,21 @@ internal sealed class TranslationStore
         return _translations.TryGetValue(normalized, out translated);
     }
 
+    internal bool TryTranslateNovel(string value, out string translated)
+    {
+        if (TryTranslateExact(value, out translated))
+            return true;
+        translated = value ?? string.Empty;
+        if (!ModConfig.Enabled.Value || string.IsNullOrEmpty(value))
+            return false;
+        var normalized = value.Replace("\r\n", "\n");
+        if (!_prefixTranslations.TryGetValue(normalized, out var prefixTranslation)
+            || string.IsNullOrEmpty(prefixTranslation))
+            return false;
+        translated = prefixTranslation;
+        return true;
+    }
+
     internal bool TryTranslateDisplay(string value, out string translated)
     {
         translated = value ?? string.Empty;

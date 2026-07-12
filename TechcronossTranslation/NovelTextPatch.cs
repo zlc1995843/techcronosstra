@@ -11,6 +11,8 @@ internal static class NovelTextPatch
 
     private static void Prefix(ref string __0)
     {
+        if (Plugin.Translations.IsCharacterName(__0))
+            return;
         if (!Plugin.Translations.TryTranslateDisplay(__0, out var translated))
             return;
 

@@ -17,6 +17,7 @@ internal sealed class TranslationStore
     private readonly ConcurrentDictionary<string, byte> _captured = new(StringComparer.Ordinal);
     private readonly object _captureLock = new();
     private Dictionary<string, string> _translations = new(StringComparer.Ordinal);
+    private HashSet<string> _characterNames = new(StringComparer.Ordinal);
     private HashSet<string> _translatedValues = new(StringComparer.Ordinal);
     private KeyValuePair<string, string>[] _orderedTranslations = [];
     private Dictionary<string, string> _prefixTranslations = new(StringComparer.Ordinal);
@@ -53,6 +54,14 @@ internal sealed class TranslationStore
                 result[item.Name] = translated;
         }
         _translations = result;
+        if (root.TryGetProperty("character_names", out var characterNames)
+            && characterNames.ValueKind == JsonValueKind.Object)
+        {
+            _characterNames = new HashSet<string>(
+                characterNames.EnumerateObject().Select(item => item.Name),
+                StringComparer.Ordinal
+            );
+        }
         _translatedValues = new HashSet<string>(result.Values, StringComparer.Ordinal);
         _orderedTranslations = result
             .OrderByDescending(item => item.Key.Length)
@@ -83,6 +92,15 @@ internal sealed class TranslationStore
         if (_translatedValues.Contains(value))
             return true;
         return _translatedValues.Contains(value.Replace("\r\n", "\n").Trim());
+    }
+
+    internal bool IsCharacterName(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return false;
+        if (_characterNames.Contains(value))
+            return true;
+        return _characterNames.Contains(value.Replace("\r\n", "\n").Trim());
     }
 
     internal string Translate(string value)

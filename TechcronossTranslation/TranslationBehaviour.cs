@@ -194,13 +194,14 @@ internal sealed class TranslationBehaviour : MonoBehaviour
         }
         if (!font.HasCharacters(Plugin.Translations.ChineseCharacterSet))
         {
-            Plugin.Logger.LogError($"Rounded font failed glyph validation: {font.name}");
-            yield break;
+            Plugin.Logger.LogWarning(
+                $"Rounded font has incomplete glyph coverage and will use available glyphs: {font.name}"
+            );
         }
 
         _chineseFont = font;
         Plugin.Logger.LogInfo(
-            $"Rounded Chinese story font loaded and validated: {font.name} "
+            $"Rounded Chinese story font loaded: {font.name} "
             + $"chineseCharacters={Plugin.Translations.ChineseCharacterSet.Length}"
         );
     }

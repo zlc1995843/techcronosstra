@@ -54,6 +54,26 @@ def role_for(item: dict) -> str:
     return "unknown"
 
 
+CHARACTER_STORY_RE = re.compile(
+    r"^(?!quest_|event_|main_|tutorial_|town_|battle_)"
+    r"[a-z0-9_]+_20\d{2}_\d{2}_(?:mc|ac|hm)(?:_(?:EP|H)\d+)?$",
+    re.IGNORECASE,
+)
+
+
+def is_character_story_item(item: dict) -> bool:
+    contexts = item.get("contexts", [])
+    if any(context.endswith(":Name") for context in contexts):
+        return True
+    for context in contexts:
+        if not context.startswith("script:"):
+            continue
+        script_name = context.split(":", 2)[1]
+        if CHARACTER_STORY_RE.match(script_name):
+            return True
+    return False
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Translate character/story groups until a deadline.")
     parser.add_argument("--input", type=Path, default=Path(".work/character_story_source.json"))
@@ -77,7 +97,11 @@ def main() -> int:
     else:
         raise SystemExit("Specify --until HH:MM or --max-minutes N")
 
-    source = json.loads(args.input.read_text(encoding="utf-8"))
+    source = [
+        item
+        for item in json.loads(args.input.read_text(encoding="utf-8"))
+        if is_character_story_item(item)
+    ]
     translated = json.loads(args.output.read_text(encoding="utf-8"))["translations"] if args.output.exists() else {}
     temp_dir = args.input.parent / "scheduler_batches"
     temp_dir.mkdir(exist_ok=True)

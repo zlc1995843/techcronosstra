@@ -8,14 +8,22 @@ namespace TechcronossTranslation;
 internal static class NovelTextPatch
 {
     private static bool _loggedFirstReplacement;
+    internal static bool CurrentLineHasTranslation { get; private set; }
 
     private static void Prefix(ref string __0)
     {
         if (Plugin.Translations.IsCharacterName(__0))
+        {
+            CurrentLineHasTranslation = false;
             return;
+        }
         if (!Plugin.Translations.TryTranslateDisplay(__0, out var translated))
+        {
+            CurrentLineHasTranslation = false;
             return;
+        }
 
+        CurrentLineHasTranslation = true;
         __0 = translated;
         if (_loggedFirstReplacement)
             return;

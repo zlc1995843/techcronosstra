@@ -75,6 +75,13 @@ internal sealed class TranslationBehaviour : MonoBehaviour
 
         var source = label.text;
         var instanceId = label.GetInstanceID();
+        if (Plugin.Translations.IsCharacterName(source)
+            && !NovelTextPatch.CurrentLineHasTranslation)
+        {
+            _pendingTranslations.Remove(instanceId);
+            _lastValues[instanceId] = source;
+            return;
+        }
         if (_chineseFont == null)
         {
             if (!string.IsNullOrEmpty(source)

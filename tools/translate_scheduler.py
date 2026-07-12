@@ -152,8 +152,55 @@ def main() -> int:
                 f"batch={index}/{len(groups)}\nreturncode={result.returncode}\n\n{detail}\n",
                 encoding="utf-8",
             )
-            notify("铁抠嘉年华", f"翻译中断：角色 {role}\n原因已写入 scheduler_failure.log")
-            return result.returncode
+            skipped_path = args.input.parent / "scheduler_skipped.jsonl"
+            recovered = 0
+            skipped = 0
+            for item_index, item in enumerate(items, 1):
+                if datetime.now() >= deadline:
+                    break
+                single_file = temp_dir / f"{index:04d}_{item_index:04d}.json"
+                single_file.write_text(
+                    json.dumps([item], ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+                single_command = [
+                    sys.executable,
+                    str(Path(__file__).with_name("translate_deepseek.py")),
+                    "--input", str(single_file),
+                    "--output", str(args.output),
+                    "--max-items", "1",
+                    "--max-chars", str(args.max_chars),
+                    "--attempts", "2",
+                ]
+                single_result = subprocess.run(
+                    single_command,
+                    cwd=Path(__file__).parent.parent,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                )
+                if single_result.returncode == 0:
+                    recovered += 1
+                    if single_result.stdout:
+                        print(single_result.stdout, end="", flush=True)
+                    continue
+                skipped += 1
+                with skipped_path.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps({
+                        "time": datetime.now().isoformat(timespec="seconds"),
+                        "role": role,
+                        "source": item.get("source", ""),
+                        "contexts": item.get("contexts", []),
+                        "error": (single_result.stderr or single_result.stdout or "unknown error")[-2000:],
+                    }, ensure_ascii=False) + "\n")
+            print(
+                f"Fallback role={role} recovered={recovered} skipped={skipped}",
+                flush=True,
+            )
+            notify("铁抠嘉年华", f"{role} 单条恢复 {recovered}，跳过 {skipped}")
+            continue
         if result.stdout:
             print(result.stdout, end="", flush=True)
         remaining = len(groups) - index

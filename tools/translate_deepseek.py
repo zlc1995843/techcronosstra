@@ -140,6 +140,7 @@ def main() -> int:
     parser.add_argument("--max-items", type=int, default=80)
     parser.add_argument("--max-chars", type=int, default=7000)
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--attempts", type=int, default=6)
     args = parser.parse_args()
 
     api_key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
@@ -155,7 +156,7 @@ def main() -> int:
     print(f"Pending={len(pending)} batches={len(work)} existing={len(translated)}", flush=True)
 
     for batch_index, batch in enumerate(work, 1):
-        for attempt in range(1, 7):
+        for attempt in range(1, args.attempts + 1):
             try:
                 result = request_translation(api_key, args.model, batch)
                 for index, item in enumerate(batch):
@@ -174,7 +175,7 @@ def main() -> int:
                 urllib.error.HTTPError,
                 http.client.IncompleteRead,
             ) as error:
-                if attempt == 6:
+                if attempt == args.attempts:
                     raise
                 delay = min(60, (2 ** attempt) + random.random() * 2)
                 print(f"Batch {batch_index} attempt {attempt} failed: {error}; retry {delay:.1f}s", flush=True)

@@ -116,6 +116,17 @@ internal sealed class TranslationStore
         return value;
     }
 
+    internal bool TryTranslateExact(string value, out string translated)
+    {
+        translated = value ?? string.Empty;
+        if (!ModConfig.Enabled.Value || string.IsNullOrEmpty(value))
+            return false;
+        if (_translations.TryGetValue(value, out translated))
+            return true;
+        var normalized = value.Replace("\r\n", "\n").Trim();
+        return _translations.TryGetValue(normalized, out translated);
+    }
+
     internal bool TryTranslateDisplay(string value, out string translated)
     {
         translated = value ?? string.Empty;

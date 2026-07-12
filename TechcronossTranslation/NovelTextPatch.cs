@@ -17,7 +17,7 @@ internal static class NovelTextPatch
             CurrentLineHasTranslation = false;
             return;
         }
-        if (!Plugin.Translations.TryTranslateDisplay(__0, out var translated))
+        if (!Plugin.Translations.TryTranslateExact(__0, out var translated))
         {
             CurrentLineHasTranslation = false;
             return;

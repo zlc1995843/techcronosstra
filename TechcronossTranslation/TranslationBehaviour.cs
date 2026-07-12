@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using BepInEx;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
+using Garnet.Novel.View.UI;
 using TMPro;
 using UnityEngine;
 
@@ -76,7 +77,7 @@ internal sealed class TranslationBehaviour : MonoBehaviour
         var source = label.text;
         var instanceId = label.GetInstanceID();
         if (Plugin.Translations.IsCharacterName(source)
-            && !NovelTextPatch.CurrentLineHasTranslation)
+            && label.GetComponentInParent<NovelTextView>() != null)
         {
             _pendingTranslations.Remove(instanceId);
             _lastValues[instanceId] = source;

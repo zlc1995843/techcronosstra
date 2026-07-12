@@ -1,35 +1,43 @@
+using Garnet.Novel.Command;
 using Garnet.Novel.Utility;
+using Garnet.Novel.View.UI;
 using HarmonyLib;
 using TMPro;
 
 namespace TechcronossTranslation;
 
-[HarmonyPatch(typeof(NovelText), nameof(NovelText.CreateInfo))]
-internal static class NovelTextPatch
+[HarmonyPatch(typeof(AddTextMacroCommand), "set_Text")]
+internal static class NovelCommandTextPatch
 {
     private static bool _loggedFirstReplacement;
-    internal static bool CurrentLineHasTranslation { get; private set; }
 
-    private static void Prefix(ref string __0)
+    private static void Prefix(ref string value)
     {
-        if (Plugin.Translations.IsCharacterName(__0))
-        {
-            CurrentLineHasTranslation = false;
+        if (!Plugin.Translations.TryTranslateExact(value, out var translated))
             return;
-        }
-        if (!Plugin.Translations.TryTranslateNovel(__0, out var translated))
-        {
-            CurrentLineHasTranslation = false;
-            return;
-        }
 
-        CurrentLineHasTranslation = true;
-        __0 = translated;
+        value = translated;
         if (_loggedFirstReplacement)
             return;
 
         _loggedFirstReplacement = true;
-        Plugin.Logger.LogInfo("Novel source text is translated before typewriter parsing.");
+        Plugin.Logger.LogInfo("Novel command text is translated during script deserialization.");
+    }
+}
+
+[HarmonyPatch(typeof(NovelTextView), nameof(NovelTextView.Execute))]
+internal static class NovelNameDisplayPatch
+{
+    private static void Postfix(NovelTextView __instance)
+    {
+        var label = __instance?.nameText;
+        if (label == null || !Plugin.Translations.IsCharacterName(label.text))
+            return;
+        if (!Plugin.Translations.TryTranslateExact(label.text, out var translated))
+            return;
+
+        TranslationBehaviour.ApplyNovelFont(label);
+        label.text = translated;
     }
 }
 

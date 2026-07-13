@@ -3,7 +3,6 @@ $ErrorActionPreference = 'Continue'
 $root = Split-Path -Parent $PSScriptRoot
 $input = Join-Path $root '.work\character_story_source.json'
 $output = Join-Path $root 'translations\zh-Hans.json'
-$glossary = 'C:\Users\曾罗畅\Downloads\铁扣对照\glossary.json'
 $runtimeLog = Join-Path $root '.work\translation_supervisor_runtime.log'
 $schedulerLog = Join-Path $root '.work\translation_scheduler_runtime.log'
 $schedulerErr = Join-Path $root '.work\translation_scheduler_runtime.err.log'
@@ -34,8 +33,7 @@ try {
         $scheduler,
         '--input', $input,
         '--output', $output,
-        '--until', '09:00',
-        '--glossary', $glossary
+        '--until', '09:00'
     )
     $worker = Start-Process -FilePath $python -ArgumentList $arguments -WorkingDirectory $root -WindowStyle Hidden -RedirectStandardOutput $schedulerLog -RedirectStandardError $schedulerErr -PassThru
     Add-Content -LiteralPath $runtimeLog -Value "[$(Get-Date -Format s)] scheduler started pid=$($worker.Id)"

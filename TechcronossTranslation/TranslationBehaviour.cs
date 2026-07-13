@@ -53,9 +53,9 @@ internal sealed class TranslationBehaviour : MonoBehaviour
             return;
         try
         {
-            foreach (var label in UnityEngine.Object.FindObjectsOfType<TextMeshProUGUI>())
+            foreach (var label in UnityEngine.Object.FindObjectsOfType<TMP_Text>())
                 Translate(label);
-            foreach (var label in UnityEngine.Object.FindObjectsOfType<TextMeshPro>())
+            foreach (var label in UnityEngine.Object.FindObjectsOfType<RubyTextMeshProUGUI>())
                 Translate(label);
         }
         catch (Exception exception)
@@ -76,13 +76,6 @@ internal sealed class TranslationBehaviour : MonoBehaviour
 
         var source = label.text;
         var instanceId = label.GetInstanceID();
-        if (Plugin.Translations.IsCharacterName(source)
-            && label.GetComponentInParent<NovelTextView>() != null)
-        {
-            _pendingTranslations.Remove(instanceId);
-            _lastValues[instanceId] = source;
-            return;
-        }
         if (_chineseFont == null)
         {
             if (!string.IsNullOrEmpty(source)

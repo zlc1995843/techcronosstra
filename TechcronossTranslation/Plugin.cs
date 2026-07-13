@@ -10,7 +10,7 @@ public sealed class Plugin : BasePlugin
 {
     public const string PluginGuid = "zlc.techcronoss.translation";
     public const string PluginName = "Techcronoss Chinese Translation";
-    public const string PluginVersion = "0.1.21";
+    public const string PluginVersion = "0.1.27";
 
     internal static ManualLogSource Logger { get; private set; } = null!;
     internal static TranslationStore Translations { get; private set; } = null!;
@@ -27,7 +27,10 @@ public sealed class Plugin : BasePlugin
         _behaviour = AddComponent<TranslationBehaviour>();
         _harmony = new Harmony(PluginGuid);
         _harmony.PatchAll(typeof(Plugin).Assembly);
-        Logger.LogInfo($"{PluginName} {PluginVersion} loaded. Entries={Translations.Count}");
+        Logger.LogInfo(
+            $"{PluginName} {PluginVersion} loaded. Entries={Translations.Count}. "
+            + "Using the safe pre-TMP story hook and post-render fallback."
+        );
     }
 
     public override bool Unload()

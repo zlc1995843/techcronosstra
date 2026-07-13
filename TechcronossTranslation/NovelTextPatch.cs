@@ -1,4 +1,3 @@
-using Garnet.Novel.Command;
 using Garnet.Novel.Utility;
 using Garnet.Novel.View.UI;
 using HarmonyLib;
@@ -6,22 +5,23 @@ using TMPro;
 
 namespace TechcronossTranslation;
 
-[HarmonyPatch(typeof(AddTextMacroCommand), "set_Text")]
-internal static class NovelCommandTextPatch
+[HarmonyPatch(typeof(NovelText), nameof(NovelText.CreateInfo))]
+internal static class NovelTextPatch
 {
     private static bool _loggedFirstReplacement;
 
-    private static void Prefix(ref string value)
+    private static void Prefix(ref string __0)
     {
-        if (!Plugin.Translations.TryTranslateExact(value, out var translated))
+        if (Plugin.Translations.IsCharacterName(__0)
+            || !Plugin.Translations.TryTranslateExact(__0, out var translated))
             return;
 
-        value = translated;
+        __0 = translated;
         if (_loggedFirstReplacement)
             return;
 
         _loggedFirstReplacement = true;
-        Plugin.Logger.LogInfo("Novel command text is translated during script deserialization.");
+        Plugin.Logger.LogInfo("Novel source text is translated before typewriter parsing.");
     }
 }
 

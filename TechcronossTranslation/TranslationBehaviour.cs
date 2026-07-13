@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using BepInEx;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
 using Garnet.Novel.View.UI;
@@ -18,6 +19,7 @@ internal sealed class TranslationBehaviour : MonoBehaviour
     private bool _fontInitializationAttempted;
     private TMP_FontAsset _chineseFont;
     private AssetBundle _fontBundle;
+    private string _privateFontPath;
     private readonly Dictionary<int, string> _lastValues = new();
     private readonly Dictionary<int, string> _pendingTranslations = new();
 
@@ -29,6 +31,7 @@ internal sealed class TranslationBehaviour : MonoBehaviour
 
     private void OnDestroy()
     {
+        UnloadPrivateFont();
         if (Instance == this)
             Instance = null;
     }
@@ -152,6 +155,16 @@ internal sealed class TranslationBehaviour : MonoBehaviour
         _fontInitializationAttempted = true;
         try
         {
+            var completeFont = TryCreateCompleteRoundedFont();
+            if (completeFont != null)
+            {
+                _chineseFont = completeFont;
+                Plugin.Logger.LogInfo(
+                    $"Complete rounded Chinese story font loaded: {_chineseFont.name}"
+                );
+                return;
+            }
+
             var path = Path.Combine(
                 Paths.PluginPath,
                 "TechcronossTranslation",
@@ -171,6 +184,74 @@ internal sealed class TranslationBehaviour : MonoBehaviour
             Plugin.Logger.LogWarning($"Chinese font initialization failed: {exception.Message}");
         }
     }
+
+    private TMP_FontAsset TryCreateCompleteRoundedFont()
+    {
+        try
+        {
+            const string fontName = "Resource Han Rounded CN Medium";
+            LoadPrivateRoundedFont();
+            var installedNames = Font.GetOSInstalledFontNames();
+            var installed = installedNames != null
+                && Array.IndexOf(installedNames, fontName) >= 0;
+            Plugin.Logger.LogInfo(
+                $"Complete rounded font discovery: installed={installed} "
+                + $"candidates={installedNames?.Length ?? 0}"
+            );
+            var osFont = Font.CreateDynamicFontFromOSFont(new[] { fontName }, 64);
+            if (osFont == null)
+                return null;
+
+            var asset = TMP_FontAsset.CreateFontAsset(osFont);
+            if (asset == null)
+                return null;
+
+            asset.name = "Resource Han Rounded CN Medium Dynamic SDF";
+            asset.atlasPopulationMode = AtlasPopulationMode.Dynamic;
+            return asset;
+        }
+        catch (Exception exception)
+        {
+            Plugin.Logger.LogWarning(
+                $"Complete rounded Chinese font could not be created: {exception.Message}"
+            );
+            return null;
+        }
+    }
+
+    private void LoadPrivateRoundedFont()
+    {
+        var path = Path.Combine(
+            Paths.PluginPath,
+            "TechcronossTranslation",
+            "fonts",
+            "ResourceHanRoundedCN-Medium.ttf"
+        );
+        if (!File.Exists(path))
+            return;
+
+        if (AddFontResourceEx(path, PrivateFont, IntPtr.Zero) > 0)
+        {
+            _privateFontPath = path;
+            Plugin.Logger.LogInfo("Complete rounded font loaded into the game process.");
+        }
+    }
+
+    private void UnloadPrivateFont()
+    {
+        if (string.IsNullOrEmpty(_privateFontPath))
+            return;
+        RemoveFontResourceEx(_privateFontPath, PrivateFont, IntPtr.Zero);
+        _privateFontPath = null;
+    }
+
+    private const uint PrivateFont = 0x10;
+
+    [DllImport("gdi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern int AddFontResourceEx(string fileName, uint flags, IntPtr reserved);
+
+    [DllImport("gdi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool RemoveFontResourceEx(string fileName, uint flags, IntPtr reserved);
 
     private IEnumerator LoadRoundedFont(string path)
     {

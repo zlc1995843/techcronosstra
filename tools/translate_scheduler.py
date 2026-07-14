@@ -12,6 +12,13 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except AttributeError:
+        pass
+
+
 def notify(title: str, message: str) -> None:
     title = "\u94c1\u6298\u5609\u5e74\u534e"
     def decode(value: str) -> str:

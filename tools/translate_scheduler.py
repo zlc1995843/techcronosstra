@@ -110,6 +110,19 @@ def main() -> int:
         for item in json.loads(args.input.read_text(encoding="utf-8"))
         if is_character_story_item(item)
     ]
+    historical_skip_path = args.input.parent / "scheduler_skipped.jsonl"
+    historical_skips: set[str] = set()
+    if historical_skip_path.exists():
+        for line in historical_skip_path.read_text(encoding="utf-8").splitlines():
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if record.get("source"):
+                historical_skips.add(str(record["source"]))
+    if historical_skips:
+        source.sort(key=lambda item: item["source"] not in historical_skips)
+        print(f"Prioritized historical backfill items: {len(historical_skips)}", flush=True)
     translated = json.loads(args.output.read_text(encoding="utf-8"))["translations"] if args.output.exists() else {}
     temp_dir = args.input.parent / "scheduler_batches"
     temp_dir.mkdir(exist_ok=True)

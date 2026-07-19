@@ -185,7 +185,7 @@ def main() -> int:
                 f"batch={index}/{len(groups)}\nreturncode={result.returncode}\n\n{detail}\n",
                 encoding="utf-8",
             )
-            skipped_path = args.input.parent / "scheduler_skipped.jsonl"
+            retry_pending_path = args.input.parent / "scheduler_retry_pending.jsonl"
             recovered = 0
             skipped = 0
             for item_index, item in enumerate(items, 1):
@@ -221,7 +221,7 @@ def main() -> int:
                         print(single_result.stdout, end="", flush=True)
                     continue
                 skipped += 1
-                with skipped_path.open("a", encoding="utf-8") as handle:
+                with retry_pending_path.open("a", encoding="utf-8") as handle:
                     handle.write(json.dumps({
                         "time": datetime.now().isoformat(timespec="seconds"),
                         "role": role,
@@ -230,7 +230,7 @@ def main() -> int:
                         "error": (single_result.stderr or single_result.stdout or "unknown error")[-2000:],
                     }, ensure_ascii=False) + "\n")
             print(
-                f"Fallback role={role} recovered={recovered} skipped={skipped}",
+                f"Fallback role={role} recovered={recovered} deferred={skipped}",
                 flush=True,
             )
             notify("铁抠嘉年华", f"{role} 单条恢复 {recovered}，跳过 {skipped}")

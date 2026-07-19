@@ -33,6 +33,7 @@ try {
         $scheduler,
         '--input', $input,
         '--output', $output,
+        '--model', 'deepseek-v4-flash',
         '--until', '09:00'
     )
     $worker = Start-Process -FilePath $python -ArgumentList $arguments -WorkingDirectory $root -WindowStyle Hidden -RedirectStandardOutput $schedulerLog -RedirectStandardError $schedulerErr -PassThru

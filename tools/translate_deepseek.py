@@ -31,7 +31,7 @@ def load_output(path: Path) -> dict[str, object]:
     return {
         "meta": {
             "language": "zh-Hans",
-            "generator": "DeepSeek-V4-Pro",
+            "generator": "DeepSeek-V4-Flash",
             "game": "Techcronoss X",
         },
         "translations": {},
@@ -136,7 +136,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, default=Path(".work/source_strings.json"))
     parser.add_argument("--output", type=Path, default=Path("translations/zh-Hans.json"))
-    parser.add_argument("--model", default="deepseek-v4-pro")
+    parser.add_argument("--model", default="deepseek-v4-flash")
     parser.add_argument("--max-items", type=int, default=80)
     parser.add_argument("--max-chars", type=int, default=7000)
     parser.add_argument("--limit", type=int)
@@ -148,6 +148,7 @@ def main() -> int:
         raise SystemExit("DEEPSEEK_API_KEY is not set")
     source_items = json.loads(args.input.read_text(encoding="utf-8"))
     output = load_output(args.output)
+    output.setdefault("meta", {})["generator"] = "DeepSeek-V4-Flash"
     translated: dict[str, str] = output.setdefault("translations", {})
     pending = [item for item in source_items if item["source"] not in translated]
     if args.limit is not None:

@@ -88,6 +88,7 @@ def main() -> int:
     parser.add_argument("--until", help="Stop at local time HH:MM, for example 14:00")
     parser.add_argument("--max-minutes", type=int)
     parser.add_argument("--max-chars", type=int, default=6000)
+    parser.add_argument("--model", default="deepseek-v4-flash")
     parser.add_argument("--glossary", type=Path, default=Path(r"C:\Users\曾罗畅\Downloads\铁扣对照\glossary.json"))
     args = parser.parse_args()
 
@@ -140,6 +141,7 @@ def main() -> int:
             str(Path(__file__).with_name("translate_deepseek.py")),
             "--input", str(name_file),
             "--output", str(args.output),
+            "--model", args.model,
             "--max-items", "40",
             "--max-chars", str(args.max_chars),
         ]
@@ -166,7 +168,7 @@ def main() -> int:
             break
         batch_file = temp_dir / f"{index:04d}.json"
         batch_file.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
-        command = [sys.executable, str(Path(__file__).with_name("translate_deepseek.py")), "--input", str(batch_file), "--output", str(args.output), "--max-items", "50", "--max-chars", str(args.max_chars)]
+        command = [sys.executable, str(Path(__file__).with_name("translate_deepseek.py")), "--input", str(batch_file), "--output", str(args.output), "--model", args.model, "--max-items", "50", "--max-chars", str(args.max_chars)]
         result = subprocess.run(
             command,
             cwd=Path(__file__).parent.parent,
@@ -199,6 +201,7 @@ def main() -> int:
                     str(Path(__file__).with_name("translate_deepseek.py")),
                     "--input", str(single_file),
                     "--output", str(args.output),
+                    "--model", args.model,
                     "--max-items", "1",
                     "--max-chars", str(args.max_chars),
                     "--attempts", "2",

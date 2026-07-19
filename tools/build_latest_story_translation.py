@@ -36,7 +36,7 @@ def main() -> int:
             "game": "Techcronoss X",
             "character": "Andromeda (Swimsuit)",
             "language": "zh-Hans",
-            "generator": translated_payload.get("meta", {}).get("generator", "DeepSeek-V4-Pro"),
+            "generator": translated_payload.get("meta", {}).get("generator", "DeepSeek-V4-Flash"),
         },
         "translations": {source: translated[source] for source in sorted(story_sources)},
     }

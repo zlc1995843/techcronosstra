@@ -204,7 +204,7 @@ def main() -> int:
                     "--model", args.model,
                     "--max-items", "1",
                     "--max-chars", str(args.max_chars),
-                    "--attempts", "2",
+                    "--attempts", "8",
                 ]
                 single_result = subprocess.run(
                     single_command,
@@ -239,6 +239,67 @@ def main() -> int:
             print(result.stdout, end="", flush=True)
         remaining = len(groups) - index
         notify("铁抠嘉年华", f"角色翻译完成：{role}\n还剩 {remaining} 个角色")
+    retry_pending_path = args.input.parent / "scheduler_retry_pending.jsonl"
+    retry_round = 0
+    while datetime.now() < deadline:
+        current_payload = json.loads(args.output.read_text(encoding="utf-8"))
+        current_translations = current_payload.get("translations", {})
+        missing = [item for item in source if item["source"] not in current_translations]
+        if not missing:
+            print("Backfill complete: no untranslated character-story items remain", flush=True)
+            notify("铁抠嘉年华", "角色剧情补译完成，没有剩余跳过项")
+            break
+
+        retry_round += 1
+        recovered = 0
+        print(f"Backfill round {retry_round}: missing={len(missing)}", flush=True)
+        for item_index, item in enumerate(missing, 1):
+            if datetime.now() >= deadline:
+                break
+            retry_file = temp_dir / f"backfill_{retry_round:03d}_{item_index:05d}.json"
+            retry_file.write_text(
+                json.dumps([item], ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            retry_command = [
+                sys.executable,
+                str(Path(__file__).with_name("translate_deepseek.py")),
+                "--input", str(retry_file),
+                "--output", str(args.output),
+                "--model", args.model,
+                "--max-items", "1",
+                "--max-chars", str(args.max_chars),
+                "--attempts", "10",
+            ]
+            retry_result = subprocess.run(
+                retry_command,
+                cwd=Path(__file__).parent.parent,
+                check=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+            if retry_result.returncode == 0:
+                recovered += 1
+                if retry_result.stdout:
+                    print(retry_result.stdout, end="", flush=True)
+                continue
+            with retry_pending_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps({
+                    "time": datetime.now().isoformat(timespec="seconds"),
+                    "round": retry_round,
+                    "role": role_for(item),
+                    "source": item.get("source", ""),
+                    "contexts": item.get("contexts", []),
+                    "error": (retry_result.stderr or retry_result.stdout or "unknown error")[-2000:],
+                }, ensure_ascii=False) + "\n")
+        print(
+            f"Backfill round {retry_round} recovered={recovered} remaining_at_start={len(missing)}",
+            flush=True,
+        )
+        if recovered == 0 and datetime.now() < deadline:
+            time.sleep(60)
     return 0
 
 

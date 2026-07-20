@@ -20,7 +20,7 @@ for _stream in (sys.stdout, sys.stderr):
 
 
 def notify(title: str, message: str) -> None:
-    title = "\u94c1\u6298\u5609\u5e74\u534e"
+    title = "\u94c1\u62a0\u5609\u5e74\u534e"
     def decode(value: str) -> str:
         return re.sub(
             r"\\u([0-9a-fA-F]{4})",

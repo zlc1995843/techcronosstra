@@ -161,7 +161,11 @@ internal sealed class TranslationStore
         foreach (var item in _orderedTranslations)
         {
             var source = item.Key;
-            if (source.Length < 2)
+            // Substring replacement is only safe for long, distinctive sentences.
+            // Short keys (gasp lines like "……っ！", names) would corrupt unrelated
+            // untranslated texts (main story, home voices) that merely contain them;
+            // those still match exactly when shown as standalone lines.
+            if (source.Length < 8)
                 continue;
 
             var index = value.IndexOf(source, StringComparison.Ordinal);

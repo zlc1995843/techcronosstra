@@ -72,6 +72,8 @@ def is_character_story_item(item: dict) -> bool:
     contexts = item.get("contexts", [])
     if any(context.endswith(":Name") for context in contexts):
         return True
+    if any(context.endswith(":Nickname") for context in contexts):
+        return True
     for context in contexts:
         if not context.startswith("script:"):
             continue

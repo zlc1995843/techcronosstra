@@ -155,13 +155,9 @@ internal sealed class TranslationStore
             return true;
         }
 
-        var normalizedValue = value.Replace("\r\n", "\n");
-        if (_prefixTranslations.TryGetValue(normalizedValue, out var prefixTranslation))
-        {
-            translated = prefixTranslation ?? string.Empty;
-            return true;
-        }
-
+        // Prefix fallback lives only in TryTranslateNovel. Applying it to every
+        // label let short UI strings (e.g. the back button "戻る") resolve to
+        // unrelated story translations that merely share a prefix.
         foreach (var item in _orderedTranslations)
         {
             var source = item.Key;

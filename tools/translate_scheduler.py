@@ -83,6 +83,27 @@ def is_character_story_item(item: dict) -> bool:
     return False
 
 
+GENERIC_SPEAKER_RE = re.compile(
+    r"(?:女の子|女子高生|少女|女性|母親|お姉さん|姉|子ども|子供|仔牛|牛|店員|店主|"
+    r"スタッフ|キャスト|係員|受付|占い師|司会者|船員|荒くれ者|"
+    r"客|バーテン|カウガール|ギャル|売り子|選択肢|三人|二人|"
+    r"新入り|部下|声|本物の花嫁)(?:（？）|たち|の姉|さん)?$"
+)
+
+
+def is_reviewable_character_name(item: dict) -> bool:
+    source = str(item.get("source", "")).strip()
+    if not source or GENERIC_SPEAKER_RE.search(source):
+        return False
+    for context in item.get("contexts", []):
+        if not context.endswith(":Name"):
+            continue
+        script_name = context.rsplit(":", 1)[0]
+        if CHARACTER_STORY_RE.match(script_name) and not script_name.lower().startswith("pr_"):
+            return True
+    return False
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Translate character/story groups until a deadline.")
     parser.add_argument("--input", type=Path, default=Path(".work/character_story_source.json"))
@@ -125,27 +146,28 @@ def main() -> int:
     if historical_skips:
         source.sort(key=lambda item: item["source"] not in historical_skips)
         print(f"Prioritized historical backfill items: {len(historical_skips)}", flush=True)
-    translated = json.loads(args.output.read_text(encoding="utf-8"))["translations"] if args.output.exists() else {}
+    output_payload = json.loads(args.output.read_text(encoding="utf-8")) if args.output.exists() else {"translations": {}}
+    translated = output_payload.setdefault("translations", {})
     temp_dir = args.input.parent / "scheduler_batches"
     temp_dir.mkdir(exist_ok=True)
     glossary = json.loads(args.glossary.read_text(encoding="utf-8")) if args.glossary.exists() else {"names": {}, "pronouns": {}}
     known_names = set(glossary.get("names", {}))
-    known_names.update(
-        item["source"]
-        for item in source
-        if any(c.endswith(":Name") for c in item.get("contexts", [])) and item["source"] in translated
+    known_names.update(output_payload.get("character_names", {}))
+    unknown_names = sorted(
+        {item["source"] for item in source if is_reviewable_character_name(item)} - known_names
     )
-    unknown_names = sorted({item["source"] for item in source if any(c.endswith(":Name") for c in item.get("contexts", []))} - known_names)
     if unknown_names:
-        pending = args.glossary.parent / "待确认人名.json"
+        pending = args.input.parent / "pending_name_review.json"
         pending.write_text(
-            json.dumps({"说明": "以下人名先由 DeepSeek 初译，完成后请人工确认", "names": unknown_names}, ensure_ascii=False, indent=2),
+            json.dumps({"names": unknown_names}, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-        notify("铁抠嘉年华", f"发现 {len(unknown_names)} 个未对照人名\n将先使用 DeepSeek 初译")
+        notify("铁抠嘉年华", f"发现 {len(unknown_names)} 个待确认角色名\n请在 Codex 对话中确认")
+        print("Pending character-name confirmation:", ", ".join(unknown_names), flush=True)
+        return 0
     pending_name_items = [
         item for item in source
-        if any(c.endswith(":Name") for c in item.get("contexts", []))
+        if is_reviewable_character_name(item)
         and item["source"] not in translated
     ]
     if pending_name_items:
@@ -167,7 +189,10 @@ def main() -> int:
             (args.input.parent / "scheduler_failure.log").write_text(result.stderr or result.stdout or "name translation failed", encoding="utf-8")
             notify("铁抠嘉年华", "人名初译中断，详情已写入 scheduler_failure.log")
             return result.returncode
-        notify("铁抠嘉年华", f"待确认人名初译完成：{len(pending_name_items)} 个\n请修改 glossary.json 后再启动剧情翻译")
+        notify(
+            "铁抠嘉年华",
+            f"角色名初译完成：{len(pending_name_items)} 个\n请在 Codex 对话中确认",
+        )
         return 0
     groups: dict[str, list[dict]] = {}
     for item in source:

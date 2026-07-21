@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import gzip
 import os
 import sys
 import urllib.request
@@ -12,7 +13,7 @@ from qcloud_cos import CosConfig, CosS3Client
 BUCKET = "techcronoss-offline-1313455599"
 REGION = "ap-guangzhou"
 PUBLIC_BASE_URL = f"https://{BUCKET}.cos.{REGION}.myqcloud.com"
-OBJECT_KEY = "public/translations/zh-Hans.json"
+OBJECT_KEY = "public/translations/zh-Hans.json.gz"
 SOURCE = Path(__file__).resolve().parents[1] / "translations" / "zh-Hans.json"
 
 
@@ -41,6 +42,7 @@ def upload() -> None:
 
     raw = SOURCE.read_bytes()
     parsed = json.loads(raw.decode("utf-8"))
+    compressed = gzip.compress(raw, compresslevel=9, mtime=0)
     config = CosConfig(
         Region=REGION,
         SecretId=secret_id,
@@ -51,32 +53,31 @@ def upload() -> None:
     client.put_object(
         Bucket=BUCKET,
         Key=OBJECT_KEY,
-        Body=raw,
+        Body=compressed,
         ACL="public-read",
-        ContentType="application/json; charset=utf-8",
+        ContentType="application/gzip",
         CacheControl="public, max-age=300, must-revalidate",
     )
 
-    # Remove artifacts from the retired manifest + gzip publishing layout.
+    # Keep the public folder on the single-file layout.
     try:
-        client.delete_object(Bucket=BUCKET, Key="public/translations/manifest.json")
+        client.delete_object(Bucket=BUCKET, Key="public/translations/zh-Hans.json")
     except Exception:
         pass
     try:
-        listed = client.list_objects(Bucket=BUCKET, Prefix="public/translations/data/")
-        for item in listed.get("Contents", []):
-            client.delete_object(Bucket=BUCKET, Key=item["Key"])
+        client.delete_object(Bucket=BUCKET, Key="public/translations/manifest.json")
     except Exception:
         pass
 
     public_url = f"{PUBLIC_BASE_URL}/{OBJECT_KEY}"
     with urllib.request.urlopen(public_url, timeout=30) as response:
-        remote = response.read()
+        remote = gzip.decompress(response.read())
     if remote != raw:
         raise RuntimeError("Anonymous COS verification failed: content mismatch")
 
     print(f"url={public_url}")
-    print(f"bytes={len(raw)}")
+    print(f"source_bytes={len(raw)}")
+    print(f"compressed_bytes={len(compressed)}")
     print(f"translations={len(parsed.get('translations', {}))}")
     print(f"character_names={len(parsed.get('character_names', {}))}")
 

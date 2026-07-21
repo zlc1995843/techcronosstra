@@ -19,7 +19,7 @@ Rules:
    Never translate or alter any text inside <...> or {...}. The translated text must contain exactly the same number of newline characters as the source.
 2. Do not add explanations, censorship, quotation marks, or translator notes.
 3. Keep character names and terminology consistent within the batch.
-4. Fixed character names: アンドロメダ = 安德洛墨达; アンドロメダ(水着) = 安德洛墨达（泳装）. Never vary these names.
+4. `canonical_character_names` contains the only allowed Chinese spelling for each listed Japanese character name. Use those spellings exactly and never invent variants.
 5. Return one translation for every numeric id.
 6. Output valid JSON only in this shape: {"translations":[{"id":0,"text":"..."}]}.
 """
@@ -63,8 +63,14 @@ def batches(items: list[dict[str, object]], max_items: int, max_chars: int):
         yield batch
 
 
-def request_translation(api_key: str, model: str, batch: list[dict[str, object]]) -> dict[int, str]:
+def request_translation(
+    api_key: str,
+    model: str,
+    batch: list[dict[str, object]],
+    canonical_character_names: dict[str, str],
+) -> dict[int, str]:
     content = {
+        "canonical_character_names": canonical_character_names,
         "items": [
             {
                 "id": index,
@@ -132,6 +138,18 @@ def _enclosed_tokens(value: str, opening: str, closing: str) -> list[str]:
         offset = end + 1
 
 
+def normalize_batch_names(
+    values: dict[str, str], canonical_character_names: dict[str, str]
+) -> None:
+    report_path = Path(__file__).resolve().parents[1] / ".work" / "name_normalization_report.json"
+    if not canonical_character_names or not report_path.is_file():
+        return
+    from normalize_character_names import apply_alias_catalog
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    apply_alias_catalog(values, canonical_character_names, report)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, default=Path(".work/source_strings.json"))
@@ -150,6 +168,10 @@ def main() -> int:
     output = load_output(args.output)
     output.setdefault("meta", {})["generator"] = "DeepSeek-V4-Flash"
     translated: dict[str, str] = output.setdefault("translations", {})
+    canonical_character_names = {
+        str(source): str(target)
+        for source, target in output.get("character_names", {}).items()
+    }
     pending = [item for item in source_items if item["source"] not in translated]
     if args.limit is not None:
         pending = pending[: args.limit]
@@ -159,9 +181,18 @@ def main() -> int:
     for batch_index, batch in enumerate(work, 1):
         for attempt in range(1, args.attempts + 1):
             try:
-                result = request_translation(api_key, args.model, batch)
-                for index, item in enumerate(batch):
-                    translated[str(item["source"])] = result[index]
+                result = request_translation(
+                    api_key,
+                    args.model,
+                    batch,
+                    canonical_character_names,
+                )
+                batch_values = {
+                    str(item["source"]): result[index]
+                    for index, item in enumerate(batch)
+                }
+                normalize_batch_names(batch_values, canonical_character_names)
+                translated.update(batch_values)
                 save_output(args.output, output)
                 print(
                     f"Batch {batch_index}/{len(work)} saved={len(batch)} total={len(translated)}",

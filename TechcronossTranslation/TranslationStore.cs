@@ -12,6 +12,7 @@ namespace TechcronossTranslation;
 
 internal sealed class TranslationStore
 {
+    private const string PlayerNamePlaceholder = "＜ユーザー名は１２文字＞";
     private static readonly Regex Japanese = new("[\\u3040-\\u30ff\\u3400-\\u9fff]", RegexOptions.Compiled);
     private readonly ManualLogSource _logger;
     private readonly ConcurrentDictionary<string, byte> _captured = new(StringComparer.Ordinal);
@@ -22,6 +23,7 @@ internal sealed class TranslationStore
     private KeyValuePair<string, string>[] _orderedTranslations = [];
     private Dictionary<string, string> _prefixTranslations = new(StringComparer.Ordinal);
     private string _capturePath = string.Empty;
+    private readonly string _playerName;
 
     internal int Count => _translations.Count;
     internal string CharacterSet { get; private set; } = string.Empty;
@@ -30,6 +32,7 @@ internal sealed class TranslationStore
     internal TranslationStore(ManualLogSource logger)
     {
         _logger = logger;
+        _playerName = ResolvePlayerName();
     }
 
     internal void Load()
@@ -151,7 +154,7 @@ internal sealed class TranslationStore
         var exact = Translate(value);
         if (!string.Equals(value, exact, StringComparison.Ordinal))
         {
-            translated = exact;
+            translated = ReplacePlayerName(exact);
             return true;
         }
 
@@ -177,11 +180,41 @@ internal sealed class TranslationStore
             if (index < 0)
                 continue;
 
-            translated = value.Replace(source, item.Value, StringComparison.Ordinal);
+            translated = ReplacePlayerName(
+                value.Replace(source, item.Value, StringComparison.Ordinal)
+            );
+            return true;
+        }
+
+        var playerAdjusted = ReplacePlayerName(value);
+        if (!string.Equals(value, playerAdjusted, StringComparison.Ordinal))
+        {
+            translated = playerAdjusted;
             return true;
         }
 
         return false;
+    }
+
+    private string ReplacePlayerName(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return value ?? string.Empty;
+
+        var replaced = value.Replace(
+            PlayerNamePlaceholder,
+            _playerName,
+            StringComparison.Ordinal
+        );
+        return string.Equals(replaced.Trim(), "ゲスト", StringComparison.Ordinal)
+            ? replaced.Replace("ゲスト", _playerName, StringComparison.Ordinal)
+            : replaced;
+    }
+
+    private static string ResolvePlayerName()
+    {
+        var configured = Environment.GetEnvironmentVariable("TECHCRONOSS_PLAYER_NAME")?.Trim();
+        return string.IsNullOrEmpty(configured) ? "托马兹" : configured;
     }
 
     private static Dictionary<string, string> BuildPrefixTranslations(

@@ -56,8 +56,6 @@ internal sealed class TranslationBehaviour : MonoBehaviour
             return;
         try
         {
-            foreach (var label in UnityEngine.Object.FindObjectsOfType<TMP_Text>())
-                Translate(label);
             foreach (var label in UnityEngine.Object.FindObjectsOfType<RubyTextMeshProUGUI>())
                 Translate(label);
         }

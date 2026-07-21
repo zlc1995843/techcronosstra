@@ -19,6 +19,7 @@ internal sealed class TranslationStore
     private readonly object _captureLock = new();
     private Dictionary<string, string> _translations = new(StringComparer.Ordinal);
     private HashSet<string> _characterNames = new(StringComparer.Ordinal);
+    private Dictionary<string, string> _storyLabels = new(StringComparer.Ordinal);
     private HashSet<string> _translatedValues = new(StringComparer.Ordinal);
     private KeyValuePair<string, string>[] _orderedTranslations = [];
     private Dictionary<string, string> _prefixTranslations = new(StringComparer.Ordinal);
@@ -57,14 +58,29 @@ internal sealed class TranslationStore
                 result[item.Name] = translated;
         }
         _translations = result;
+        var storyLabels = new Dictionary<string, string>(StringComparer.Ordinal);
         if (root.TryGetProperty("character_names", out var characterNames)
             && characterNames.ValueKind == JsonValueKind.Object)
         {
-            _characterNames = new HashSet<string>(
-                characterNames.EnumerateObject().Select(item => item.Name),
-                StringComparer.Ordinal
-            );
+            foreach (var item in characterNames.EnumerateObject())
+            {
+                var translated = item.Value.GetString();
+                if (!string.IsNullOrWhiteSpace(translated))
+                    storyLabels[item.Name] = translated;
+            }
+            _characterNames = new HashSet<string>(storyLabels.Keys, StringComparer.Ordinal);
         }
+        if (root.TryGetProperty("character_titles", out var characterTitles)
+            && characterTitles.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var item in characterTitles.EnumerateObject())
+            {
+                var translated = item.Value.GetString();
+                if (!string.IsNullOrWhiteSpace(translated))
+                    storyLabels[item.Name] = translated;
+            }
+        }
+        _storyLabels = storyLabels;
         _translatedValues = new HashSet<string>(result.Values, StringComparer.Ordinal);
         _orderedTranslations = result
             .OrderByDescending(item => item.Key.Length)
@@ -72,7 +88,7 @@ internal sealed class TranslationStore
         _prefixTranslations = BuildPrefixTranslations(result);
         var characters = new HashSet<char>();
         var chineseCharacters = new HashSet<char>();
-        foreach (var value in result.Values)
+        foreach (var value in result.Values.Concat(storyLabels.Values))
             foreach (var character in value)
                 if (!char.IsControl(character))
                 {
@@ -130,6 +146,17 @@ internal sealed class TranslationStore
         return _translations.TryGetValue(normalized, out translated);
     }
 
+    internal bool TryTranslateStoryLabel(string value, out string translated)
+    {
+        translated = value ?? string.Empty;
+        if (!ModConfig.Enabled.Value || string.IsNullOrEmpty(value))
+            return false;
+        if (_storyLabels.TryGetValue(value, out translated))
+            return true;
+        var normalized = value.Replace("\r\n", "\n").Trim();
+        return _storyLabels.TryGetValue(normalized, out translated);
+    }
+
     internal bool TryTranslateNovel(string value, out string translated)
     {
         if (TryTranslateExact(value, out translated))
@@ -157,6 +184,9 @@ internal sealed class TranslationStore
             translated = ReplacePlayerName(exact);
             return true;
         }
+
+        if (TryTranslateStoryLabel(value, out translated))
+            return true;
 
         // Prefix fallback lives only in TryTranslateNovel. Applying it to every
         // label let short UI strings (e.g. the back button "戻る") resolve to

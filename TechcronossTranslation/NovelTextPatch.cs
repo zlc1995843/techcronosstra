@@ -5,8 +5,8 @@ using TMPro;
 namespace TechcronossTranslation;
 
 // Translate the complete novel command before the typewriter parser sees it.
-// The TMP setter below is restricted to the novel renderer. Hooking every TMP
-// label causes ordinary UI strings that happen to match story text to be replaced.
+// Non-novel TMP labels are limited to exact character-name/title matches. This
+// covers the history panel without letting dialogue fragments corrupt normal UI.
 [HarmonyPatch(typeof(NovelText), nameof(NovelText.CreateInfo))]
 internal static class NovelSourceTextPatch
 {
@@ -15,7 +15,6 @@ internal static class NovelSourceTextPatch
     private static void Prefix(ref string __0)
     {
         if (!ModConfig.Enabled.Value
-            || Plugin.Translations.IsCharacterName(__0)
             || !Plugin.Translations.TryTranslateDisplay(__0, out var translated))
             return;
 
@@ -35,13 +34,18 @@ internal static class NovelTextWritePatch
 
     private static void Prefix(TMP_Text __instance, ref string value)
     {
-        if (!ModConfig.Enabled.Value
-            || string.IsNullOrEmpty(value)
-            || __instance is not RubyTextMeshProUGUI
-            || !Plugin.Translations.TryTranslateDisplay(value, out var translated))
+        if (!ModConfig.Enabled.Value || string.IsNullOrEmpty(value))
+            return;
+
+        string translated;
+        var changed = __instance is RubyTextMeshProUGUI
+            ? Plugin.Translations.TryTranslateDisplay(value, out translated)
+            : Plugin.Translations.TryTranslateStoryLabel(value, out translated);
+        if (!changed)
             return;
 
         value = translated;
+        TranslationBehaviour.ApplyNovelFont(__instance);
         if (_loggedFirstReplacement)
             return;
 

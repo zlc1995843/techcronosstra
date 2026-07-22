@@ -70,14 +70,13 @@ CHARACTER_STORY_RE = re.compile(
 
 def is_character_story_item(item: dict) -> bool:
     contexts = item.get("contexts", [])
-    if any(context.endswith(":Name") for context in contexts):
-        return True
-    if any(context.endswith(":Nickname") for context in contexts):
-        return True
     for context in contexts:
-        if not context.startswith("script:"):
+        if context.startswith("script:"):
+            script_name = context.split(":", 2)[1]
+        elif context.endswith((":Name", ":Nickname")):
+            script_name = context.rsplit(":", 1)[0]
+        else:
             continue
-        script_name = context.split(":", 2)[1]
         if CHARACTER_STORY_RE.match(script_name):
             return True
     return False

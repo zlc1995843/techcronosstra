@@ -199,12 +199,21 @@ def main() -> int:
                     flush=True,
                 )
                 break
+            except urllib.error.HTTPError as error:
+                if error.code == 402:
+                    raise RuntimeError(
+                        "DeepSeek Flash quota unavailable (HTTP 402 Payment Required)"
+                    ) from error
+                if attempt == args.attempts:
+                    raise
+                delay = min(60, (2 ** attempt) + random.random() * 2)
+                print(f"Batch {batch_index} attempt {attempt} failed: {error}; retry {delay:.1f}s", flush=True)
+                time.sleep(delay)
             except (
                 OSError,
                 ValueError,
                 KeyError,
                 json.JSONDecodeError,
-                urllib.error.HTTPError,
                 http.client.IncompleteRead,
             ) as error:
                 if attempt == args.attempts:
